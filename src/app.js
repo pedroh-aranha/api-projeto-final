@@ -15,7 +15,7 @@ app.get('/health', (req, res) => {
 // Rota raiz: apresenta a API
 app.get('/', (req, res) => {
   res.json({
-    nome: 'API do meu projeto',
+    nome: 'gym controller',
     versao: '0.1.0',
     rotas: ['GET /health'],
   });
