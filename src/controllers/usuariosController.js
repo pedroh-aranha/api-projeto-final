@@ -1,4 +1,4 @@
-import { usuarios } from '../data/turmas.js';
+import { usuarios } from '../data/usuarios.js';
 
 //get 
 export function listarUsuarios (req, res) {
