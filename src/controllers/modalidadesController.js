@@ -1,11 +1,13 @@
-// Controller: as regras de cada operação de modalidades. Os dados vêm do banco (Prisma).
+// Controller de modalidades (tabela de apoio): listar e cadastrar.
 import { prisma } from '../lib/prisma.js';
+import { ErroApi } from '../erros.js';
 
 // GET /api/modalidades
 export async function listar(req, res) {
-  const modalidades = await prisma.modalidade.findMany({ orderBy: { id: 'asc' } });
+  const modalidades = await prisma.modalidade.findMany({ orderBy: { nome: 'asc' } });
   res.json(modalidades);
 }
+
 
 // GET /api/modalidades/:id
 export async function buscarPorId(req, res) {
@@ -22,21 +24,13 @@ export async function buscarPorId(req, res) {
 
 // POST /api/modalidades
 export async function criar(req, res) {
-  // req.body vem vazio (undefined) se o cliente não enviar JSON; ?? {} evita o erro
   const { nome } = req.body ?? {};
-  if (!nome) {
-    return res.status(400).json({ erro: 'O campo nome é obrigatório' });
+  if (typeof nome !== 'string' || nome.trim() === '') {
+    throw new ErroApi(400, 'Dados inválidos', ['nome é obrigatório e precisa ser um texto']);
   }
-  const nomeEmUso = await prisma.modalidade.findUnique({ where: { nome } });
-  if (nomeEmUso) {
-    return res.status(400).json({ erro: 'Já existe uma modalidade com esse nome' });
-  }
-  const novo = await prisma.modalidade.create({
-    data: {
-      nome,
-    },
-  });
-  res.status(201).json(novo);
+  // nome repetido: o banco recusa (@unique) e o app.js responde 409
+  const nova = await prisma.modalidade.create({ data: { nome: nome.trim() } });
+  res.status(201).json(nova);
 }
 
 // PUT /api/modalidades/:id

@@ -30,6 +30,7 @@ import express from 'express';
 import modalidadesRoutes from './routes/modalidadesRoutes.js';
 import turmasRoutes from './routes/turmasRoutes.js'
 import usuariosRoutes from './routes/usuariosRoutes.js';
+import { ErroApi } from './erros.js';
 
 const app = express();
 
@@ -76,10 +77,19 @@ app.use((req, res) => {
   res.status(404).json({ erro: `Rota ${req.method} ${req.path} não existe` });
 });
 
-// Tratamento de erros: JSON mal escrito ou falha inesperada (sempre por último)
+// Tratamento de erros: sempre o último app.use. Todo erro sai no mesmo formato.
 app.use((erro, req, res, next) => {
+  // erros que nós mesmos lançamos com throw new ErroApi(...)
+  if (erro instanceof ErroApi) {
+    return res.status(erro.status).json({ erro: erro.message, detalhes: erro.detalhes });
+  }
+  // JSON mal escrito no corpo da requisição
   if (erro.type === 'entity.parse.failed') {
     return res.status(400).json({ erro: 'JSON inválido no corpo da requisição' });
+  }
+  // Prisma: valor repetido num campo único (@unique)
+  if (erro.code === 'P2002') {
+    return res.status(409).json({ erro: 'Já existe um registro com esse valor' });
   }
   console.error(erro);
   res.status(500).json({ erro: 'Erro interno no servidor' });
