@@ -1,8 +1,12 @@
 import { Router } from "express";
-import { listarUsuarios } from "../controllers/usuariosController.js";
+import { listar, buscarPorId, atualizar, criar, excluir } from "../controllers/usuariosController.js";
 
 const router = Router();
 
-router.get('/', listarUsuarios);
+router.get('/', listar);
+router.get('/:id', buscarPorId);
+router.put('/:id', atualizar)
+router.post('/', criar);
+router.delete('/:id', excluir);
 
 export default router;

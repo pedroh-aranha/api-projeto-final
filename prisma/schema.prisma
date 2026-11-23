@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  criadoEm  DateTime @default(now())
+
+  @@map("usuarios")
+}
+
+model Modalidade {
+  id     Int     @id @default(autoincrement())
+  nome   String  @unique
+  turmas Turma[]
+
+  @@map("modalidades")
+}
+
+model Turma {
+  id           Int        @id @default(autoincrement())
+  diaSemana    String
+  horario      String
+  instrutor    String?
+  vagas        Int        @default(20)
+  status       String     @default("aberta")
+  modalidadeId Int
+  modalidade   Modalidade @relation(fields: [modalidadeId], references: [id])
+  criadoEm     DateTime   @default(now())
+
+  @@map("turmas")
+}

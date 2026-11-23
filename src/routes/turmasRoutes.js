@@ -1,8 +1,12 @@
 import { Router } from "express";
-import{ listarTurmas } from '../controllers/turmasController.js'
+import{ listar, buscarPorId, atualizar, criar, excluir } from '../controllers/turmasController.js'
 
 const router = Router();
 
-router.get('/', listarTurmas);
+router.get('/', listar);
+router.get('/:id', buscarPorId);
+router.put('/:id', atualizar)
+router.post('/', criar);
+router.delete('/:id', excluir);
 
 export default router;

@@ -1,60 +1,88 @@
-import { modalidades } from "../data/modalidades.js";
+// Controller: as regras de cada operação de modalidades. Os dados vêm do banco (Prisma).
+import { prisma } from '../lib/prisma.js';
 
-//get
-export function listarModalidades (req, res) {
-  res.json(modalidades)
-};
+// GET /api/modalidades
+export async function listar(req, res) {
+  const modalidades = await prisma.modalidade.findMany({ orderBy: { id: 'asc' } });
+  res.json(modalidades);
+}
 
 // GET /api/modalidades/:id
-export function buscarPorId(req, res) {
+export async function buscarPorId(req, res) {
   const id = Number(req.params.id);
-  const modalidade = modalidades.find((m) => m.id === id);
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ erro: 'O id precisa ser um número' });
+  }
+  const modalidade = await prisma.modalidade.findUnique({ where: { id } });
   if (!modalidade) {
-    return res.status(404).json({ erro: 'modalidade não encontrado' });
+    return res.status(404).json({ erro: 'Modalidade não encontrada' });
   }
   res.json(modalidade);
 }
 
 // POST /api/modalidades
-export function criar(req, res) {
+export async function criar(req, res) {
   // req.body vem vazio (undefined) se o cliente não enviar JSON; ?? {} evita o erro
   const { nome } = req.body ?? {};
   if (!nome) {
-    return res.status(400).json({ erro: 'O campo titulo é obrigatório' });
+    return res.status(400).json({ erro: 'O campo nome é obrigatório' });
   }
-  const novoId = modalidades.length > 0 ? modalidades[modalidades.length - 1].id + 1 : 1;
-  const novo = {
-    id: novoId,
-    nome,
-  };
-  modalidades.push(novo);
+  const nomeEmUso = await prisma.modalidade.findUnique({ where: { nome } });
+  if (nomeEmUso) {
+    return res.status(400).json({ erro: 'Já existe uma modalidade com esse nome' });
+  }
+  const novo = await prisma.modalidade.create({
+    data: {
+      nome,
+    },
+  });
   res.status(201).json(novo);
 }
 
 // PUT /api/modalidades/:id
-export function atualizar(req, res) {
+export async function atualizar(req, res) {
   const id = Number(req.params.id);
-  const posicao = modalidades.findIndex((m) => m.id === id);
-  if (posicao === -1) {
-    return res.status(404).json({ erro: 'modalidade não encontrado' });
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ erro: 'O id precisa ser um número' });
+  }
+  const existe = await prisma.modalidade.findUnique({ where: { id } });
+  if (!existe) {
+    return res.status(404).json({ erro: 'Modalidade não encontrada' });
   }
   const dados = req.body ?? {};
-  if (dados.titulo === '') {
-    return res.status(400).json({ erro: 'O campo titulo não pode ficar vazio' });
+  if (dados.nome === '') {
+    return res.status(400).json({ erro: 'O campo nome não pode ficar vazio' });
   }
-  // junta o que já existia com o que chegou; o id nunca muda
-  const atualizado = { ...modalidades[posicao], ...dados, id };
-  modalidades[posicao] = atualizado;
+  if (dados.nome && dados.nome !== existe.nome) {
+    const nomeEmUso = await prisma.modalidade.findUnique({ where: { nome: dados.nome } });
+    if (nomeEmUso) {
+      return res.status(400).json({ erro: 'Já existe uma modalidade com esse nome' });
+    }
+  }
+  // campos que não chegaram ficam undefined, e o Prisma não os altera
+  const atualizado = await prisma.modalidade.update({
+    where: { id },
+    data: {
+      nome: dados.nome,
+    },
+  });
   res.json(atualizado);
 }
 
-// DELETE /api/chamados/:id
-export function excluir(req, res) {
+// DELETE /api/modalidades/:id
+export async function excluir(req, res) {
   const id = Number(req.params.id);
-  const posicao = modalidades.findIndex((m) => m.id === id);
-  if (posicao === -1) {
-    return res.status(404).json({ erro: 'modalidade não encontrado' });
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ erro: 'O id precisa ser um número' });
   }
-  modalidades.splice(posicao, 1);
+  const existe = await prisma.modalidade.findUnique({ where: { id } });
+  if (!existe) {
+    return res.status(404).json({ erro: 'Modalidade não encontrada' });
+  }
+  const turmasVinculadas = await prisma.turma.count({ where: { modalidadeId: id } });
+  if (turmasVinculadas > 0) {
+    return res.status(400).json({ erro: 'Não é possível excluir uma modalidade que possui turmas vinculadas' });
+  }
+  await prisma.modalidade.delete({ where: { id } });
   res.status(204).send();
 }
